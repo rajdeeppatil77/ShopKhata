@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Edit {{ customer['full_name'] }} — ShopKhata 🏪{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}" class="text-decoration-none">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('customers.index') }}" class="text-decoration-none">Customers</a></li>
+      <li class="breadcrumb-item"><a href="{{ url_for('customers.detail', id=customer['id']) }}" class="text-decoration-none">{{ customer['full_name'] }}</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Edit</li>
+    </ol>
+  </nav>
+
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 border-0">
+          <h4 class="fw-bold mb-1 text-dark">
+            <i class="bi bi-pencil-square text-success me-2"></i>Edit Customer Details
+          </h4>
+          <p class="text-muted small mb-0">Update contact information or address for {{ customer['full_name'] }}.</p>
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('customers.edit', id=customer['id']) }}" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <div class="mb-3">
+              <label for="full_name" class="form-label fw-semibold">Customer Full Name <span class="text-danger">*</span></label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-person text-muted"></i></span>
+                <input type="text" class="form-control form-control-lg" id="full_name" name="full_name"
+                       value="{{ form_data.get('full_name', customer['full_name']) }}" required autofocus maxlength="100">
+              </div>
+            </div>
+
+            <div class="mb-3">
+              <label for="phone" class="form-label fw-semibold">Phone Number (10 digits)</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-telephone text-muted"></i></span>
+                <input type="tel" class="form-control form-control-lg" id="phone" name="phone"
+                       value="{{ form_data.get('phone', customer['phone'] or '') }}" maxlength="10" pattern="[0-9]{10}">
+              </div>
+              <div class="form-text">Changing this updates the WhatsApp reminder destination.</div>
+            </div>
+
+            <div class="mb-4">
+              <label for="address" class="form-label fw-semibold">Address / Locality</label>
+              <div class="input-group">
+                <span class="input-group-text bg-light"><i class="bi bi-geo-alt text-muted"></i></span>
+                <textarea class="form-control" id="address" name="address" rows="3"
+                          maxlength="200">{{ form_data.get('address', customer['address'] or '') }}</textarea>
+              </div>
+            </div>
+
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-success btn-lg fw-semibold shadow-sm">
+                <i class="bi bi-check-circle me-1"></i>Save Changes
+              </button>
+              <a href="{{ url_for('customers.detail', id=customer['id']) }}" class="btn btn-outline-secondary btn-lg">
+                Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
