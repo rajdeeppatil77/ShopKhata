@@ -1,0 +1,158 @@
+{% extends 'base.html' %}
+{% block title %}Quick Payment — ShopKhata 🏪{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-0">
+
+  <!-- Breadcrumb -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{{ url_for('dashboard.index') }}" class="text-decoration-none">Dashboard</a></li>
+      <li class="breadcrumb-item active" aria-current="page">Quick Payment</li>
+    </ol>
+  </nav>
+
+  <div class="row justify-content-center">
+    <div class="col-12 col-md-8 col-lg-6">
+      <div class="card border-0 shadow-sm border-top border-4 border-success">
+        <div class="card-header bg-white py-3 border-0">
+          <div class="d-flex align-items-center justify-content-between">
+            <div>
+              <h4 class="fw-bold mb-1 text-success">
+                <i class="bi bi-cash-stack me-2"></i>Record Payment (Jama)
+              </h4>
+              <p class="text-muted small mb-0">Record cash/UPI payment received from a customer.</p>
+            </div>
+            <span class="badge bg-success-subtle text-success px-3 py-2 rounded-pill fw-bold">Payment Entry</span>
+          </div>
+        </div>
+
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('transactions.add_payment') }}" id="paymentForm">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <!-- Customer Picker -->
+            <div class="mb-3">
+              <label for="payment_customer_id" class="form-label fw-bold">Select Customer <span class="text-danger">*</span></label>
+              <select class="form-select form-select-lg" id="payment_customer_id" name="customer_id" required autofocus>
+                <option value="">-- Choose Customer --</option>
+                {% for c in customers %}
+                <option value="{{ c['id'] }}" data-balance="{{ c['balance'] }}" {% if (selected_customer_id|string) == (c['id']|string) %}selected{% endif %}>
+                  {{ c['full_name'] }} {% if c['phone'] %}({{ c['phone'] }}){% endif %} — Due: ₹{{ "%.2f"|format(c['balance']) }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <!-- Live Outstanding Balance Badge -->
+            <div class="alert alert-secondary d-flex justify-content-between align-items-center py-2 px-3 mb-3" id="balanceDisplayBox">
+              <span class="text-muted small fw-semibold">Current Balance:</span>
+              <span class="fw-bold fs-5 text-danger" id="currentBalanceDisplay">Select a customer</span>
+              <button type="button" class="btn btn-sm btn-outline-success d-none" id="fillFullAmountBtn">
+                Pay Full Due
+              </button>
+            </div>
+
+            <!-- Amount -->
+            <div class="mb-3">
+              <label for="payment_amount" class="form-label fw-bold">Payment Amount (₹) <span class="text-danger">*</span></label>
+              <div class="input-group input-group-lg">
+                <span class="input-group-text bg-light text-success fw-bold fs-4">₹</span>
+                <input type="number" class="form-control form-control-lg fw-bold fs-4 text-success" id="payment_amount" name="amount"
+                       placeholder="0.00" step="0.01" min="0.01" required value="{{ form.get('amount', '') }}">
+              </div>
+              <div class="form-text text-muted" id="amountHelperText">Supports partial payments or full balance settlement.</div>
+            </div>
+
+            <!-- Date -->
+            <div class="mb-3">
+              <label for="txn_date" class="form-label fw-bold">Payment Date <span class="text-danger">*</span></label>
+              <input type="date" class="form-control form-control-lg today-default" id="txn_date" name="txn_date"
+                     required value="{{ form.get('txn_date', '') }}">
+            </div>
+
+            <!-- Notes / Payment Mode -->
+            <div class="mb-4">
+              <label for="notes" class="form-label fw-semibold text-muted">Notes / Payment Mode (Optional)</label>
+              <input type="text" class="form-control" id="notes" name="notes"
+                     placeholder="e.g. Cash, GPay, PhonePe, Paytm" maxlength="200" value="{{ form.get('notes', '') }}">
+            </div>
+
+            <!-- Submit Buttons -->
+            <div class="d-grid gap-2">
+              <button type="submit" class="btn btn-success btn-lg fw-bold shadow-sm py-3 fs-5">
+                <i class="bi bi-check-circle-fill me-2"></i>Save Payment Entry
+              </button>
+              <a href="{{ url_for('dashboard.index') }}" class="btn btn-outline-secondary btn-lg">
+                Cancel
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const customerSelect = document.getElementById('payment_customer_id');
+  const balanceDisplay = document.getElementById('currentBalanceDisplay');
+  const fillFullBtn = document.getElementById('fillFullAmountBtn');
+  const amountInput = document.getElementById('payment_amount');
+  let currentBalanceVal = 0;
+
+  function updateBalance() {
+    const selectedOption = customerSelect.options[customerSelect.selectedIndex];
+    if (selectedOption && selectedOption.value) {
+      // First try dataset balance
+      const rawBalance = parseFloat(selectedOption.getAttribute('data-balance') || '0');
+      currentBalanceVal = rawBalance;
+      balanceDisplay.textContent = '₹' + rawBalance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+      if (rawBalance > 0) {
+        fillFullBtn.classList.remove('d-none');
+        amountInput.max = rawBalance;
+      } else {
+        fillFullBtn.classList.add('d-none');
+        amountInput.removeAttribute('max');
+      }
+
+      // Also fetch live balance from API
+      fetch('/api/balance/' + selectedOption.value)
+        .then(res => res.json())
+        .then(data => {
+          if (data.balance !== undefined) {
+            currentBalanceVal = data.balance;
+            balanceDisplay.textContent = data.formatted;
+            if (data.balance > 0) {
+              fillFullBtn.classList.remove('d-none');
+              amountInput.max = data.balance;
+            } else {
+              fillFullBtn.classList.add('d-none');
+            }
+          }
+        })
+        .catch(() => {});
+    } else {
+      balanceDisplay.textContent = 'Select a customer';
+      fillFullBtn.classList.add('d-none');
+      currentBalanceVal = 0;
+    }
+  }
+
+  customerSelect.addEventListener('change', updateBalance);
+  if (customerSelect.value) {
+    updateBalance();
+  }
+
+  fillFullBtn.addEventListener('click', function() {
+    if (currentBalanceVal > 0) {
+      amountInput.value = currentBalanceVal.toFixed(2);
+    }
+  });
+});
+</script>
+{% endblock %}
