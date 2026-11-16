@@ -294,3 +294,65 @@ body {
     padding: 1rem !important;
   }
 }
+
+
+/* ============================================================
+   Print Media Styles (Statements & Receipts)
+   ============================================================ */
+@media print {
+  body {
+    background-color: #fff !important;
+    color: #000 !important;
+    font-size: 11pt !important;
+  }
+
+  /* Hide navigation, sidebar, action buttons, breadcrumbs, footers */
+  #sidebar,
+  .navbar,
+  .btn,
+  .btn-group,
+  .breadcrumb,
+  footer,
+  .alert,
+  .no-print {
+    display: none !important;
+  }
+
+  #page-content {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .card {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+  }
+
+  .card-header {
+    background: transparent !important;
+    border-bottom: 2px solid #000 !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  .table {
+    border: 1px solid #dee2e6 !important;
+    font-size: 10pt !important;
+  }
+
+  .table-light {
+    background-color: #f8f9fa !important;
+  }
+
+  .badge {
+    border: 1px solid #000 !important;
+    color: #000 !important;
+    background: transparent !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+}

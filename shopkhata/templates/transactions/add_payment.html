@@ -112,12 +112,16 @@ document.addEventListener('DOMContentLoaded', function() {
       currentBalanceVal = rawBalance;
       balanceDisplay.textContent = '₹' + rawBalance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 
-      if (rawBalance > 0) {
+      if (rawBalance > 0.001) {
         fillFullBtn.classList.remove('d-none');
         amountInput.max = rawBalance;
+        balanceDisplay.className = 'fw-bold fs-5 text-danger';
+        balanceDisplay.textContent = '₹' + rawBalance.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
       } else {
         fillFullBtn.classList.add('d-none');
         amountInput.removeAttribute('max');
+        balanceDisplay.className = 'fw-bold fs-6 text-success';
+        balanceDisplay.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Settled (₹0.00)';
       }
 
       // Also fetch live balance from API
@@ -126,12 +130,15 @@ document.addEventListener('DOMContentLoaded', function() {
         .then(data => {
           if (data.balance !== undefined) {
             currentBalanceVal = data.balance;
-            balanceDisplay.textContent = data.formatted;
-            if (data.balance > 0) {
+            if (data.balance > 0.001) {
               fillFullBtn.classList.remove('d-none');
               amountInput.max = data.balance;
+              balanceDisplay.className = 'fw-bold fs-5 text-danger';
+              balanceDisplay.textContent = data.formatted;
             } else {
               fillFullBtn.classList.add('d-none');
+              balanceDisplay.className = 'fw-bold fs-6 text-success';
+              balanceDisplay.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Settled (₹0.00)';
             }
           }
         })

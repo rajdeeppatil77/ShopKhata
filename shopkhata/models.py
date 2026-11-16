@@ -177,6 +177,37 @@ def get_customer(customer_id, user_id):
     ).fetchone()
 
 
+def customer_exists(user_id, full_name, phone=None, exclude_id=None):
+    """Check if customer with same name and phone already exists for this shop owner."""
+    db = get_db()
+    clean_name = full_name.strip()
+    clean_phone = phone.strip() if phone else None
+
+    if clean_phone:
+        if exclude_id:
+            row = db.execute(
+                "SELECT id FROM customers WHERE user_id = ? AND LOWER(full_name) = LOWER(?) AND phone = ? AND id != ?",
+                (user_id, clean_name, clean_phone, exclude_id)
+            ).fetchone()
+        else:
+            row = db.execute(
+                "SELECT id FROM customers WHERE user_id = ? AND LOWER(full_name) = LOWER(?) AND phone = ?",
+                (user_id, clean_name, clean_phone)
+            ).fetchone()
+    else:
+        if exclude_id:
+            row = db.execute(
+                "SELECT id FROM customers WHERE user_id = ? AND LOWER(full_name) = LOWER(?) AND (phone IS NULL OR phone = '') AND id != ?",
+                (user_id, clean_name, exclude_id)
+            ).fetchone()
+        else:
+            row = db.execute(
+                "SELECT id FROM customers WHERE user_id = ? AND LOWER(full_name) = LOWER(?) AND (phone IS NULL OR phone = '')",
+                (user_id, clean_name)
+            ).fetchone()
+    return row is not None
+
+
 def create_customer(user_id, full_name, phone=None, address=None):
     """Insert a new customer and return customer_id."""
     db = get_db()
@@ -209,10 +240,13 @@ def update_customer(customer_id, user_id, full_name, phone=None, address=None):
 def delete_customer(customer_id, user_id):
     """
     Delete customer only if current balance is 0.
-    Returns True if deleted, False if balance > 0 or not found.
+    Returns True if deleted, False if balance != 0 or not found.
     """
+    customer = get_customer(customer_id, user_id)
+    if customer is None:
+        return False
     balance = get_customer_balance(customer_id, user_id)
-    if balance > 0.001:
+    if abs(balance) > 0.001:
         return False
     db = get_db()
     db.execute(
@@ -250,6 +284,12 @@ def get_credits(customer_id, user_id):
 
 def add_credit(customer_id, user_id, description, amount, txn_date, notes=None):
     """Insert a credit transaction and return the generated txn_id."""
+    customer = get_customer(customer_id, user_id)
+    if customer is None:
+        raise ValueError(f"Customer #{customer_id} not found for this shop owner.")
+    if amount <= 0:
+        raise ValueError("Credit amount must be greater than zero.")
+
     txn_id = 'CR' + datetime.now().strftime('%Y%m%d%H%M%S') + _rand4()
     db = get_db()
     db.execute(
@@ -316,12 +356,21 @@ def get_payments(customer_id, user_id):
 
 
 def add_payment(customer_id, user_id, amount, txn_date, notes=None):
-    """Insert payment transaction. Raises ValueError if amount > balance."""
+    """Insert payment transaction. Raises ValueError if amount > balance, balance is zero, or customer not found."""
+    customer = get_customer(customer_id, user_id)
+    if customer is None:
+        raise ValueError(f"Customer #{customer_id} not found for this shop owner.")
+    if amount <= 0:
+        raise ValueError("Payment amount must be greater than zero.")
+
     balance = get_customer_balance(customer_id, user_id)
+    if balance <= 0.001:
+        raise ValueError(f"Customer '{customer['full_name']}' currently has no outstanding balance (₹0.00).")
     if amount > round(balance, 2) + 0.01:
         raise ValueError(
             f'Payment amount ₹{amount:.2f} exceeds outstanding balance ₹{balance:.2f}'
         )
+
     txn_id = 'PAY' + datetime.now().strftime('%Y%m%d%H%M%S') + _rand4()
     db = get_db()
     db.execute(
@@ -352,16 +401,17 @@ def get_ledger(customer_id, user_id):
     db = get_db()
     rows = db.execute(
         """
-        SELECT txn_id, txn_date AS date, 'credit' AS type, description, amount, notes, created_at
-        FROM credit_transactions
-        WHERE customer_id = ? AND user_id = ?
+        SELECT * FROM (
+            SELECT txn_id, txn_date AS date, 'credit' AS type, description, amount, notes, created_at
+            FROM credit_transactions
+            WHERE customer_id = ? AND user_id = ?
 
-        UNION ALL
+            UNION ALL
 
-        SELECT txn_id, txn_date AS date, 'payment' AS type, 'Payment Received' AS description, amount, notes, created_at
-        FROM payment_transactions
-        WHERE customer_id = ? AND user_id = ?
-
+            SELECT txn_id, txn_date AS date, 'payment' AS type, 'Payment Received' AS description, amount, notes, created_at
+            FROM payment_transactions
+            WHERE customer_id = ? AND user_id = ?
+        )
         ORDER BY date ASC, created_at ASC
         """,
         (customer_id, user_id, customer_id, user_id)
@@ -429,11 +479,11 @@ def get_dashboard_stats(user_id):
         (user_id, user_id)
     ).fetchone()
 
-    total_credit_given = float(totals['total_credit'])
-    total_payments_received = float(totals['total_paid'])
+    total_credit_given = round(float(totals['total_credit']), 2)
+    total_payments_received = round(float(totals['total_paid']), 2)
 
     customers_with_bal = get_customers_with_balance(user_id)
-    total_outstanding = sum(float(c['balance']) for c in customers_with_bal if c['balance'] > 0)
+    total_outstanding = round(sum(float(c['balance']) for c in customers_with_bal if c['balance'] > 0), 2)
 
     recent_transactions = get_recent_transactions(user_id, limit=8)
     top_pending_customers = [c for c in customers_with_bal if c['balance'] > 0][:5]
@@ -502,9 +552,9 @@ def get_report_data(user_id):
         for r in monthly_rows
     ]
 
-    total_credit = sum(c['total_credit'] for c in customer_balances)
-    total_paid = sum(c['total_paid'] for c in customer_balances)
-    total_outstanding = sum(c['balance'] for c in customer_balances if c['balance'] > 0)
+    total_credit = round(sum(c['total_credit'] for c in customer_balances), 2)
+    total_paid = round(sum(c['total_paid'] for c in customer_balances), 2)
+    total_outstanding = round(sum(c['balance'] for c in customer_balances if c['balance'] > 0), 2)
 
     return {
         'customer_balances': customer_balances,

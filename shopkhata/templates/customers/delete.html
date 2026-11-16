@@ -24,6 +24,7 @@
           <p class="text-muted small mb-0">Please review before permanently removing this customer record.</p>
         </div>
         <div class="card-body p-4">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <div class="alert alert-light border p-3 mb-4">
             <h5 class="fw-bold text-dark mb-1">{{ customer['full_name'] }}</h5>
             <div class="text-muted small">

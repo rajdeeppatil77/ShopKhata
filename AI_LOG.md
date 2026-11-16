@@ -4,7 +4,7 @@
 
 | Tool | Role |
 |---|---|
-| **Antigravity** (Google DeepMind) | Primary AI development assistant — architecture, scaffolding, and full-stack coding |
+| **Antigravity** (Google DeepMind) | Primary AI development assistant — architecture, scaffolding, full-stack coding, and QA testing |
 | **Model** | Claude Sonnet 4.6 (Thinking) & Gemini 3.8 Flash (Medium) |
 
 ---
@@ -22,6 +22,9 @@
 
 **Prompt 4 — Payment Reminders & Ledgers:**
 > *"Generate individual customer ledgers with running balances and unique transaction IDs. Include WhatsApp click-to-chat reminders with personalized Hindi/English text and customer balance."*
+
+**Prompt 5 — Comprehensive QA, Security & Reliability Audit:**
+> *"Act as a senior Python Flask developer, software tester, QA engineer, database administrator, and security auditor. Thoroughly inspect the existing project, execute the application, test its functionality, identify errors, and fix them."*
 
 ---
 
@@ -42,6 +45,21 @@
 - **How it was detected:** Executing a GET request to `/auth/login` threw a 500 server error during automated unit testing.
 - **Correction made:** Initialized `csrf = CSRFProtect(app)` in `shopkhata/__init__.py` and ensured all form templates systematically pass the CSRF token.
 
+### Mistake 4: Missing Registration form fields in `login.html`
+- **What AI did wrong:** The auth blueprint routed `/auth/register` to `render_template('auth/login.html', register_mode=True)`, but `login.html` was missing the `register_mode` conditional block, preventing new shop owners from creating accounts via the web interface.
+- **How it was detected:** During QA inspection, navigating to `/auth/register` rendered only the login inputs without shop name, registration action, or toggle links.
+- **Correction made:** Added a dynamic registration form block in `login.html` with business shop name, username, password validation, and toggle links between Login and Register.
+
+### Mistake 5: Floating point IEEE 754 precision discrepancy in aggregations
+- **What AI did wrong:** Dashboard queried SQLite `SUM()` while Reports summed Python float list elements (`sum(c['total_credit'] for c in balances)`), causing an unrounded binary float drift (`12257.95 != 12257.949999999999`).
+- **How it was detected:** Detected during the mathematical equality test between dashboard metrics and financial report aggregations.
+- **Correction made:** Enforced `round(..., 2)` on all financial currency totals across both SQL queries and reporting aggregations.
+
+### Mistake 6: Missing cross-tenant ownership check in transaction insertion
+- **What AI did wrong:** `add_credit` and `add_payment` accepted `customer_id` and `user_id` without verifying that the customer actually belonged to that specific shop owner, which could allow malicious users to inject transactions onto other shops' customers.
+- **How it was detected:** Multi-tenant security audit test revealed that an unauthorized user could pass another store's `customer_id`.
+- **Correction made:** Added strict ownership verification (`customer = models.get_customer(customer_id, user_id)`) before permitting any credit or payment transaction.
+
 ---
 
 ## Decision Where I Disagreed With AI
@@ -53,6 +71,6 @@
 ---
 
 ## Developer Verification Notes
-- All routes, database queries, and templates were validated using a 12-step end-to-end automated test suite.
-- Mobile responsiveness and tap targets were verified for small smartphone screens.
-- Zero external ORM dependencies were used, preserving lightweight and transparent SQL execution.
+- Tested across desktop and mobile viewport resolutions with Bootstrap 5 responsive grid and off-canvas sidebar.
+- 13 automated unit, integration, and security tests in `tests/` pass with zero failures.
+- Zero external ORM dependencies; clean parameterized SQLite queries ensure fast, auditable execution.

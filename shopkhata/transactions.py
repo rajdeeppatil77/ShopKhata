@@ -34,20 +34,30 @@ def add_credit():
 
         if not customer_id:
             errors.append('Customer is required.')
+        else:
+            try:
+                cid = int(customer_id)
+                customer = models.get_customer(cid, user_id)
+                if customer is None:
+                    errors.append('Selected customer not found in your shop account.')
+            except ValueError:
+                errors.append('Invalid customer ID.')
+
         if not description:
             errors.append('Description is required.')
         elif len(description) > 200:
             errors.append('Description must be at most 200 characters.')
+
         if not amount_str:
             errors.append('Amount is required.')
         else:
             try:
                 amount = float(amount_str)
                 if amount <= 0:
-                    errors.append('Amount must be greater than 0.')
+                    errors.append('Credit amount must be greater than 0.')
             except ValueError:
                 errors.append('Amount must be a valid number.')
-                amount = None
+
         if not txn_date:
             errors.append('Transaction date is required.')
 
@@ -61,16 +71,25 @@ def add_credit():
                 form=request.form,
             )
 
-        models.add_credit_transaction(
-            customer_id=int(customer_id),
-            user_id=user_id,
-            description=description,
-            amount=float(amount_str),
-            txn_date=txn_date,
-            notes=notes or None,
-        )
-        flash('Credit entry added successfully.', 'success')
-        return redirect(url_for('customers.detail', id=int(customer_id)))
+        try:
+            models.add_credit_transaction(
+                customer_id=int(customer_id),
+                user_id=user_id,
+                description=description,
+                amount=float(amount_str),
+                txn_date=txn_date,
+                notes=notes or None,
+            )
+            flash('Credit entry recorded successfully.', 'success')
+            return redirect(url_for('customers.detail', id=int(customer_id)))
+        except ValueError as ex:
+            flash(str(ex), 'danger')
+            return render_template(
+                'transactions/add_credit.html',
+                customers=customers,
+                selected_customer_id=customer_id,
+                form=request.form,
+            )
 
     # GET
     selected_customer_id = request.args.get('customer_id', '')
@@ -96,21 +115,39 @@ def add_payment():
         notes = request.form.get('notes', '').strip()
 
         errors = []
+        customer = None
 
         if not customer_id:
             errors.append('Customer is required.')
+        else:
+            try:
+                cid = int(customer_id)
+                customer = models.get_customer(cid, user_id)
+                if customer is None:
+                    errors.append('Selected customer not found in your shop account.')
+            except ValueError:
+                errors.append('Invalid customer ID.')
+
         if not amount_str:
-            errors.append('Amount is required.')
+            errors.append('Payment amount is required.')
         else:
             try:
                 amount = float(amount_str)
                 if amount <= 0:
-                    errors.append('Amount must be greater than 0.')
+                    errors.append('Payment amount must be greater than 0.')
             except ValueError:
                 errors.append('Amount must be a valid number.')
                 amount = None
+
         if not txn_date:
-            errors.append('Transaction date is required.')
+            errors.append('Payment date is required.')
+
+        if customer and amount is not None and amount > 0:
+            balance = models.get_customer_balance(customer['id'], user_id)
+            if balance <= 0.001:
+                errors.append(f"Customer '{customer['full_name']}' currently has no outstanding balance (₹0.00).")
+            elif amount > round(balance, 2) + 0.01:
+                errors.append(f"Payment amount ₹{amount:,.2f} exceeds outstanding balance ₹{balance:,.2f}.")
 
         if errors:
             for e in errors:
@@ -122,27 +159,24 @@ def add_payment():
                 form=request.form,
             )
 
-        # Balance check
-        balance = models.get_customer_balance(int(customer_id), user_id)
-        amount = float(amount_str)
-        if amount > balance:
-            flash(
-                f'Payment amount \u20b9{amount:,.2f} exceeds outstanding balance \u20b9{balance:,.2f}.',
-                'danger',
+        try:
+            models.add_payment_transaction(
+                customer_id=int(customer_id),
+                user_id=user_id,
+                amount=amount,
+                txn_date=txn_date,
+                notes=notes or None,
             )
-            return redirect(
-                url_for('transactions.add_payment', customer_id=customer_id)
+            flash('Payment recorded successfully.', 'success')
+            return redirect(url_for('customers.detail', id=int(customer_id)))
+        except ValueError as ex:
+            flash(str(ex), 'danger')
+            return render_template(
+                'transactions/add_payment.html',
+                customers=customers,
+                selected_customer_id=customer_id,
+                form=request.form,
             )
-
-        models.add_payment_transaction(
-            customer_id=int(customer_id),
-            user_id=user_id,
-            amount=amount,
-            txn_date=txn_date,
-            notes=notes or None,
-        )
-        flash('Payment recorded successfully.', 'success')
-        return redirect(url_for('customers.detail', id=int(customer_id)))
 
     # GET
     selected_customer_id = request.args.get('customer_id', '')
