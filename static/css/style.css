@@ -1,0 +1,296 @@
+/* ============================================================
+   ShopKhata — Custom Stylesheet
+   Primary: #198754 (Bootstrap success green)
+   ============================================================ */
+
+:root {
+  --sk-green: #198754;
+  --sk-green-dark: #0f5132;
+  --sk-green-light: #d1e7dd;
+  --sidebar-width: 260px;
+  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+/* ---- Base ---- */
+body {
+  font-family: var(--font-main);
+  background-color: #f8f9fa;
+  color: #212529;
+}
+
+/* ---- Sidebar ---- */
+#sidebar {
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  transition: transform 0.3s ease;
+  z-index: 1040;
+}
+
+#sidebar .nav-link {
+  border-radius: 0.5rem;
+  padding: 0.6rem 0.9rem;
+  font-weight: 500;
+  transition: background-color 0.15s ease;
+  margin-bottom: 2px;
+}
+
+#sidebar .nav-link:hover {
+  background-color: rgba(255,255,255,0.15);
+}
+
+#sidebar .nav-link.active {
+  background-color: rgba(255,255,255,0.25) !important;
+  font-weight: 600;
+}
+
+/* Mobile sidebar: hidden by default, slides in */
+@media (max-width: 991.98px) {
+  #sidebar {
+    position: fixed;
+    left: 0;
+    top: 0;
+    transform: translateX(-100%);
+    min-height: 100%;
+    height: 100%;
+    z-index: 1050;
+  }
+
+  #sidebar.show {
+    transform: translateX(0);
+  }
+
+  /* Overlay */
+  #sidebarOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    z-index: 1049;
+  }
+
+  #sidebarOverlay.show {
+    display: block;
+  }
+
+  #page-content {
+    width: 100%;
+  }
+}
+
+@media (min-width: 992px) {
+  #sidebar {
+    transform: none !important;
+  }
+}
+
+/* ---- Cards ---- */
+.card {
+  border: 1px solid rgba(0,0,0,0.07);
+  border-radius: 0.75rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+/* Summary / stat cards */
+.stat-card {
+  border-radius: 0.85rem;
+  color: #fff;
+  min-height: 110px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card .stat-icon {
+  font-size: 2.8rem;
+  opacity: 0.2;
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.stat-card .stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+}
+
+.stat-card .stat-label {
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  opacity: 0.85;
+}
+
+/* ---- Tables ---- */
+.table {
+  font-size: 0.9rem;
+  vertical-align: middle;
+}
+
+.table thead th {
+  font-weight: 600;
+  color: #495057;
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(25,135,84,0.04);
+}
+
+/* ---- Badges ---- */
+.badge-credit {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.badge-payment {
+  background-color: #198754;
+  color: #fff;
+}
+
+/* ---- Balance colors ---- */
+.balance-positive {
+  color: #dc3545;
+  font-weight: 600;
+}
+
+.balance-zero {
+  color: #198754;
+  font-weight: 600;
+}
+
+/* ---- Buttons ---- */
+.btn-success {
+  background-color: var(--sk-green);
+  border-color: var(--sk-green);
+}
+
+.btn-success:hover {
+  background-color: var(--sk-green-dark);
+  border-color: var(--sk-green-dark);
+}
+
+.btn-whatsapp {
+  background-color: #25D366;
+  border-color: #25D366;
+  color: #fff;
+  font-weight: 500;
+}
+
+.btn-whatsapp:hover {
+  background-color: #128C7E;
+  border-color: #128C7E;
+  color: #fff;
+}
+
+/* ---- Quick Actions ---- */
+.quick-action-btn {
+  min-height: 70px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-radius: 0.75rem;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.quick-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+/* ---- Forms ---- */
+.form-control, .form-select {
+  border-radius: 0.5rem;
+  border-color: #ced4da;
+  font-size: 0.95rem;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--sk-green);
+  box-shadow: 0 0 0 0.2rem rgba(25,135,84,0.2);
+}
+
+.form-label {
+  font-weight: 500;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+/* ---- Page heading ---- */
+.page-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #212529;
+}
+
+/* ---- Ledger table running balance ---- */
+.running-balance {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- Utility ---- */
+.fw-500 { font-weight: 500; }
+.fw-600 { font-weight: 600; }
+.fw-700 { font-weight: 700; }
+
+.text-rupee::before { content: '₹'; }
+
+.section-divider {
+  border: none;
+  border-top: 2px solid #e9ecef;
+  margin: 1.5rem 0;
+}
+
+/* ---- Chart container ---- */
+.chart-container {
+  position: relative;
+  height: 280px;
+}
+
+/* ---- Responsive table wrapper ---- */
+.table-responsive {
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+/* ---- Alert container ---- */
+.flash-container .alert {
+  border-radius: 0.6rem;
+  font-size: 0.9rem;
+}
+
+/* ---- Customer detail balance hero ---- */
+.balance-hero {
+  font-size: 2.5rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+/* ---- Search bar ---- */
+.search-wrapper {
+  max-width: 400px;
+}
+
+/* ---- Mobile padding fix ---- */
+@media (max-width: 575.98px) {
+  .stat-card .stat-value {
+    font-size: 1.4rem;
+  }
+
+  main {
+    padding: 1rem !important;
+  }
+}
