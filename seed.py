@@ -6,7 +6,7 @@ Usage:
 
 Creates the database if it doesn't exist, then inserts:
   - 1 demo user  (demo / demo123)
-  - 15 fictional Indian customers
+  - 15 fictional Hyderabad customers
   - 2-5 credit transactions per customer
   - 1-3 payments per customer
   - Transactions spread over the last 3 months
@@ -33,24 +33,24 @@ from shopkhata import create_app, get_db, init_db
 
 DEMO_USERNAME = "demo"
 DEMO_PASSWORD = "demo123"
-DEMO_SHOP     = "Ram General Store"
+DEMO_SHOP     = "Ravi Kirana Store"
 
 CUSTOMERS = [
-    ("Ramesh Kumar",    "9876543210", "12, Gandhi Nagar, Lucknow"),
-    ("Sunita Devi",     "9812345678", "45, Nehru Road, Kanpur"),
-    ("Manoj Sharma",    "9988776655", "7, Shastri Colony, Varanasi"),
-    ("Priya Verma",     "9765432198", "23, Civil Lines, Allahabad"),
-    ("Ajay Singh",      "9654321087", "88, MG Road, Agra"),
-    ("Kavita Gupta",    "9543210976", "5, Lal Kuan Bazaar, Delhi"),
-    ("Suresh Yadav",    "9432109865", "34, Station Road, Meerut"),
-    ("Anita Patel",     "9321098754", "67, Ashok Nagar, Jaipur"),
-    ("Vikram Mishra",   "9210987643", "11, Sadar Bazaar, Pune"),
-    ("Geeta Tiwari",    "9109876532", "29, Ram Nagar, Bhopal"),
-    ("Deepak Joshi",    "8998765421", "56, Jawahar Nagar, Indore"),
-    ("Rekha Pandey",    "8887654310", "3, Civil Hospital Road, Nagpur"),
-    ("Santosh Rawat",   "8776543209", "77, Sitapur Road, Lucknow"),
-    ("Meena Agarwal",   "8665432198", "14, Ghantaghar, Bareilly"),
-    ("Rohit Chauhan",   "8554321087", "90, Naya Bazaar, Moradabad"),
+    ("Lakshmi Reddy",     "9848012345", "Flat 201, Srinivasa Apts, Ameerpet, Hyderabad"),
+    ("Venkatesh Rao",     "9848023456", "H.No 4-5-67, Kukatpally, Hyderabad"),
+    ("Anjali Devi",       "9701034567", "Plot 12, SR Nagar, Hyderabad"),
+    ("Srinivas Goud",     "9701045678", "8-2-120, Banjara Hills Road 3, Hyderabad"),
+    ("Padma Kumari",      "9912056789", "Door 5-9-14, Secunderabad"),
+    ("Mohammed Irfan",    "9912067890", "11-4-55, Tolichowki, Hyderabad"),
+    ("Sunitha Naidu",     "9989078901", "Flat 3B, Madhapur, Hyderabad"),
+    ("Ramesh Babu",       "9989089012", "2-1-33, Nampally, Hyderabad"),
+    ("Fatima Begum",      "9849090123", "16-7-9, Charminar Road, Hyderabad"),
+    ("Krishna Murthy",    "9849101234", "Plot 44, Dilsukhnagar, Hyderabad"),
+    ("Swapna Yadav",      "9700112345", "5-3-21, Mehdipatnam, Hyderabad"),
+    ("Naresh Kumar",      "9700123456", "H.No 7-1-8, Begumpet, Hyderabad"),
+    ("Bhavani Shankar",   "8099134567", "Flat 102, Gachibowli, Hyderabad"),
+    ("Rukmini Bai",       "8099145678", "3-6-2, Himayatnagar, Hyderabad"),
+    ("Anwar Hussain",     "8008156789", "9-8-77, Malakpet, Hyderabad"),
 ]
 
 CREDIT_ITEMS = [
@@ -97,6 +97,7 @@ def random_date_last_90_days():
 
 
 def seed():
+    random.seed(2026)  # same demo data on every run
     app = create_app()
 
     with app.app_context():
