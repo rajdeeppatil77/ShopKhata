@@ -219,8 +219,6 @@ python -m unittest discover -s tests
 
 7. Project structure and database
 
-Project Structure
-
 ShopKhata/
 ├── app.py                              # Application entry point & Flask app factory
 ├── config.py                           # Configuration settings & secret key management
@@ -233,6 +231,14 @@ ShopKhata/
 │   ├── .gitkeep
 │   ├── secret_key                      # Auto-generated local secret key (gitignored)
 │   └── shopkhata.db                    # Local SQLite database (auto-generated, gitignored)
+├── screenshots/
+│   ├── login.png
+│   ├── dashboard.png
+│   ├── customers.png
+│   ├── quick-credit.png
+│   ├── quick-payment.png
+│   ├── ledger.png
+│   └── reports.png
 ├── shopkhata/                          # Core application package
 │   ├── __init__.py
 │   ├── auth.py                         # Login, registration, logout routes
