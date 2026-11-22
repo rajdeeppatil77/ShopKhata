@@ -56,17 +56,17 @@
 
             <!-- Item / Description -->
             <div class="mb-3">
-              <label for="description" class="form-label fw-bold">Items / Description <span class="text-danger">*</span></label>
+              <label for="description" class="form-label fw-bold">Items (optional)</label>
               <div class="input-group">
                 <span class="input-group-text bg-light"><i class="bi bi-cart3 text-muted"></i></span>
                 <input type="text" class="form-control form-control-lg" id="description" name="description"
-                       placeholder="e.g. 5kg Rice, 2L Mustard Oil, Soap" maxlength="200" required value="{{ form.get('description', '') }}">
+                       placeholder="e.g. 5kg Rice, 2L Mustard Oil, Soap" maxlength="200" value="{{ form.get('description', '') }}">
               </div>
             </div>
 
             <!-- Date -->
             <div class="mb-3">
-              <label for="txn_date" class="form-label fw-bold">Transaction Date <span class="text-danger">*</span></label>
+              <label for="txn_date" class="form-label fw-bold">Date</label>
               <input type="date" class="form-control form-control-lg today-default" id="txn_date" name="txn_date"
                      required value="{{ form.get('txn_date', '') }}">
             </div>

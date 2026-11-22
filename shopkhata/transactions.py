@@ -1,9 +1,41 @@
+import math
+from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session
 from shopkhata.auth import login_required
 from shopkhata import models
+from shopkhata.utils import today_str
 
 transactions = Blueprint('transactions', __name__, url_prefix='/transactions')
 bp = transactions
+
+
+MAX_AMOUNT = 10_000_000  # sanity cap (₹1 crore) to catch typos
+
+
+def _parse_amount(amount_str, label):
+    """Return (amount, error). Rejects blank, non-numeric, nan/inf, <=0 and absurd values."""
+    if not amount_str:
+        return None, f'{label} is required.'
+    try:
+        amount = float(amount_str)
+    except ValueError:
+        return None, 'Amount must be a valid number.'
+    if not math.isfinite(amount):
+        return None, 'Amount must be a valid number.'
+    if amount <= 0:
+        return None, f'{label} must be greater than 0.'
+    if amount > MAX_AMOUNT:
+        return None, 'Amount is too large. Please check the number.'
+    return round(amount, 2), None
+
+
+def _check_date(txn_date):
+    """Return an error string if txn_date is not a valid YYYY-MM-DD date."""
+    try:
+        datetime.strptime(txn_date, '%Y-%m-%d')
+    except ValueError:
+        return 'Date is not valid.'
+    return None
 
 
 def _get_customers_with_balance(user_id):
@@ -44,22 +76,19 @@ def add_credit():
                 errors.append('Invalid customer ID.')
 
         if not description:
-            errors.append('Description is required.')
-        elif len(description) > 200:
+            description = 'Goods on credit'  # optional: Ravi should not have to type at the counter
+        if len(description) > 200:
             errors.append('Description must be at most 200 characters.')
 
-        if not amount_str:
-            errors.append('Amount is required.')
-        else:
-            try:
-                amount = float(amount_str)
-                if amount <= 0:
-                    errors.append('Credit amount must be greater than 0.')
-            except ValueError:
-                errors.append('Amount must be a valid number.')
+        amount, amt_err = _parse_amount(amount_str, 'Credit amount')
+        if amt_err:
+            errors.append(amt_err)
 
         if not txn_date:
-            errors.append('Transaction date is required.')
+            txn_date = today_str()
+        date_err = _check_date(txn_date)
+        if date_err:
+            errors.append(date_err)
 
         if errors:
             for e in errors:
@@ -76,7 +105,7 @@ def add_credit():
                 customer_id=int(customer_id),
                 user_id=user_id,
                 description=description,
-                amount=float(amount_str),
+                amount=amount,
                 txn_date=txn_date,
                 notes=notes or None,
             )
@@ -128,21 +157,17 @@ def add_payment():
             except ValueError:
                 errors.append('Invalid customer ID.')
 
-        if not amount_str:
-            errors.append('Payment amount is required.')
-        else:
-            try:
-                amount = float(amount_str)
-                if amount <= 0:
-                    errors.append('Payment amount must be greater than 0.')
-            except ValueError:
-                errors.append('Amount must be a valid number.')
-                amount = None
+        amount, amt_err = _parse_amount(amount_str, 'Payment amount')
+        if amt_err:
+            errors.append(amt_err)
 
         if not txn_date:
-            errors.append('Payment date is required.')
+            txn_date = today_str()
+        date_err = _check_date(txn_date)
+        if date_err:
+            errors.append(date_err)
 
-        if customer and amount is not None and amount > 0:
+        if customer and amount is not None:
             balance = models.get_customer_balance(customer['id'], user_id)
             if balance <= 0.001:
                 errors.append(f"Customer '{customer['full_name']}' currently has no outstanding balance (₹0.00).")

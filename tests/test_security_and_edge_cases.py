@@ -11,7 +11,17 @@ PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+# --- Isolated test database: never touch instance/shopkhata.db (the demo data) ---
+import tempfile
+if 'DATABASE_PATH' not in os.environ:
+    os.environ['DATABASE_PATH'] = os.path.join(tempfile.mkdtemp(prefix='shopkhata_test_'), 'test.db')
+
 from shopkhata import create_app, get_db, models
+
+if not os.environ.get('_SHOPKHATA_TEST_SEEDED'):
+    import seed as _seed
+    _seed.seed()
+    os.environ['_SHOPKHATA_TEST_SEEDED'] = '1'
 
 
 class SecurityAndEdgeCasesTest(unittest.TestCase):

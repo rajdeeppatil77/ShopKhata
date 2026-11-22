@@ -95,8 +95,11 @@ document.addEventListener('DOMContentLoaded', function () {
   /* ---- Default Date Inputs to Today ---- */
   document.querySelectorAll('input[type="date"][data-default-today], input[type="date"].today-default').forEach(function (el) {
     if (!el.value) {
-      const today = new Date().toISOString().split('T')[0];
-      el.value = today;
+      // Use the device's local date (toISOString() is UTC and shows
+      // yesterday in India between 12:00 AM and 5:30 AM).
+      const d = new Date();
+      const pad = function (n) { return String(n).padStart(2, '0'); };
+      el.value = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
     }
   });
 
