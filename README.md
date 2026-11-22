@@ -61,9 +61,6 @@ I tried to address all four, but kept each solution small.
 ### Quick Payment
 ![Quick Payment](screenshots/quick-payment.png)
 
-### Customer Ledger
-![Customer Ledger](screenshots/ledger.png)
-
 ### Reports
 ![Reports](screenshots/reports.png)
 
