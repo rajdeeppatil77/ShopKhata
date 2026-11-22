@@ -23,7 +23,7 @@
           </h4>
           <p class="text-muted small mb-0">Update contact information or address for {{ customer['full_name'] }}.</p>
         </div>
-        <div class="card-body p-4">
+        <div class="card-body p-3 p-sm-4">
           <form method="POST" action="{{ url_for('customers.edit', id=customer['id']) }}" novalidate>
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <div class="mb-3">

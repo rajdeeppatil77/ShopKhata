@@ -8,7 +8,10 @@ csrf = CSRFProtect()
 
 
 def create_app():
-    app = Flask(__name__)
+    # static_folder points to the root static directory containing css and js
+    root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+    static_dir = os.path.join(root_dir, 'static')
+    app = Flask(__name__, static_folder=static_dir)
     app.config.from_object('config.Config')
 
     csrf.init_app(app)
