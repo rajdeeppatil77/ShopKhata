@@ -21,7 +21,7 @@ def login_required(view):
     def wrapped_view(**kwargs):
         if session.get('user_id') is None:
             flash('Please log in to access this page.', 'warning')
-            return redirect(url_for('auth.login', next=request.url))
+            return redirect(url_for('auth.login', next=request.path if request.method == 'GET' else None))
         return view(**kwargs)
     return wrapped_view
 
@@ -54,13 +54,15 @@ def login():
 
         if error is None:
             session.clear()
+            session.permanent = True
             session['user_id'] = user['id']
             session['username'] = user['username']
             session['shop_name'] = user['shop_name']
             flash(f"Welcome back, {user['shop_name']}!", 'success')
 
-            next_page = request.args.get('next')
-            if next_page and next_page.startswith('/'):
+            next_page = request.args.get('next') or ''
+            # Only allow same-site relative paths ("//evil.com" and "/\\evil.com" are not).
+            if next_page.startswith('/') and not next_page.startswith(('//', '/\\')):
                 return redirect(next_page)
             return redirect(url_for('dashboard.index'))
 
