@@ -50,10 +50,10 @@ I tried to address all four, but kept each solution small.
 ![Login Page](screenshots/login.png)
 
 ### Dashboard
-![Dashboard](screenshots/dashboard.png)
+![Dashboard](screenshots/Dashboard.png)
 
 ### Customer Management
-![Customer Management](screenshots/customers.png)
+![Customer Management](screenshots/customer.png)
 
 ### Quick Credit
 ![Quick Credit](screenshots/quick-credit.png)
