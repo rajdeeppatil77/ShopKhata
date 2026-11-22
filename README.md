@@ -1,194 +1,129 @@
-# ShopKhata – Smart Shop Credit Tracker
+# ShopKhata – Shop Credit Tracker for Ravi
 
-## Project Overview
+A small web app that replaces the paper *khata* notebook of a neighbourhood grocery shop.
 
-**ShopKhata** is a lightweight Flask + SQLite web application designed for small grocery and general store owners to digitize their traditional *Khata* (credit ledger). It allows shop owners to track customer credit (udhar), record payments, manage balances, and send WhatsApp payment reminders — all from a simple browser-based interface with no internet dependency.
+## 1. The problem and the user
 
----
+**User:** Ravi runs a small grocery shop in Hyderabad and gives goods on credit to about 80 regular customers. He uses a smartphone every day, reads simple English, is not comfortable with complicated apps, and is usually busy with a customer standing at the counter.
 
-## Problem Statement
+**His problems (from the brief):**
+1. "I forget who owes me how much. Sometimes I lose the money completely."
+2. "Customers argue: 'I paid you last week!' I have no proof."
+3. "Asking people to pay is awkward. I don't remind them, so they delay."
+4. "At the end of the month I don't know how much money is stuck with customers."
 
-Small shop owners traditionally maintain handwritten credit ledgers (*Khatas*). This creates four recurring problems that ShopKhata directly solves:
+I tried to address all four, but kept each solution small.
 
-1. **Losing track of customer dues** — Handwritten ledgers get lost, damaged, or become unreadable. ShopKhata persists all data in a local database with a full audit trail.
-2. **Payment disputes (no receipts)** — Verbal credit agreements often lead to disputes. ShopKhata records every transaction with a unique ID and timestamp.
-3. **Difficulty collecting payments** — Owners have no easy way to remind customers. ShopKhata generates pre-filled WhatsApp messages with one click.
-4. **No monthly financial overview** — Owners cannot easily see how much is owed overall. ShopKhata provides a live dashboard and monthly/customer-level reports.
-
----
-
-## Features
-
-| Category | Feature |
+| Ravi's problem | How ShopKhata solves it |
 |---|---|
-| **Authentication** | Secure login/logout with hashed passwords and CSRF protection |
-| **Dashboard** | Total outstanding balance, top debtors, recent activity summary, Chart.js visualizations |
-| **Customer Management** | Add, edit, view customers; prevent deletion when balance is outstanding |
-| **Credit Management** | Record credit transactions with item description, amount, and date |
-| **Payment Management** | Record payments against outstanding balance; payments cannot exceed balance |
-| **Ledger** | Full per-customer transaction history (credits + payments, chronological) |
-| **Reports** | Monthly summary reports with totals and per-customer breakdown |
-| **WhatsApp Reminders** | One-click pre-filled WhatsApp chat link for payment follow-ups |
-| **Unique Transaction IDs** | Server-generated audit IDs for every credit and payment entry |
+| Forgets who owes what | Customer list sorted by who owes most; search by name or phone; dashboard shows total outstanding and top debtors |
+| "I paid last week!" | Every credit and payment is saved with a date and a unique entry ID. Each customer has a ledger with a running balance, so Ravi can show the exact history |
+| Awkward to ask for money | One tap on a customer opens WhatsApp with a polite, pre-filled reminder that includes the amount |
+| Month-end: how much is stuck? | Dashboard + Reports page: total credit given, total received, total outstanding, month-by-month summary, and a CSV download |
 
----
+## 2. What I built
 
-## Technology Stack
+- Login / logout, with a separate private set of data for each shop (all queries are scoped to the logged-in user).
+- Customers: add, edit, search, view ledger, delete (only when the balance is zero).
+- **Quick Credit** and **Quick Payment** screens. Only *customer* and *amount* are needed; the date defaults to today and the item description is optional, so an entry takes a few seconds.
+- Per-customer ledger with running balance and entry IDs.
+- WhatsApp reminder link (opens a pre-filled message; nothing is sent automatically).
+- Dashboard and monthly reports, CSV export.
+- Mobile-first layout (Bootstrap 5), large buttons and inputs.
+- Seed script with 15 Hyderabad customers and about 80 entries, plus a demo login.
+- 18 automated tests (auth, CSRF, tenant isolation, money rules, input validation, XSS/SQL-injection checks, regressions).
 
-| Layer | Technology |
+### Deliberately left out (and why)
+
+| Left out | Reason |
 |---|---|
-| **Frontend** | HTML5, CSS3, JavaScript, Bootstrap 5.3, Chart.js |
-| **Backend** | Python 3.x, Flask 3.0 |
-| **Database** | SQLite (via Python `sqlite3` standard library) |
-| **Security** | Werkzeug password hashing, Flask-WTF CSRF protection, session-based authentication |
+| SMS / automatic WhatsApp sending | Needs paid APIs; the brief says no outside integrations. A click-to-chat link needs no API key |
+| Editing / deleting individual entries | A ledger that can be silently edited weakens the "proof" Ravi needs. A wrong entry should be fixed with a new correcting entry (see next steps) |
+| Inventory, billing, GST | Different product; would hide the one thing Ravi needs |
+| Staff accounts / roles | v1 is for one owner |
+| Telugu / Hindi UI | Ravi reads simple English; language support is a next step |
+| Hosting | Not required; the app runs locally |
 
----
+## 3. Assumptions and product decisions
 
-## Database Structure
+- All amounts are in rupees. Balance is **never stored**; it is always calculated as total credit − total payments, so it cannot drift out of sync.
+- A payment cannot be larger than what the customer owes (prevents typing mistakes such as an extra zero). Advance payments are not supported in v1.
+- Customers with any balance cannot be deleted; this protects debt records.
+- Phone numbers are 10-digit Indian mobile numbers (optional). A customer without a phone simply has no WhatsApp button.
+- Entry IDs are generated on the server (timestamp + random digits) and are unique in the database.
+- The item description is optional (stored as "Goods on credit" if blank), because typing at the counter is the slowest part.
+- Dates are plain `YYYY-MM-DD` in the shop's local time.
+- Registration is open so the reviewer can create a second shop and verify that data is private.
+- **Internet note:** Bootstrap, Bootstrap Icons, Chart.js and the Inter font are loaded from a CDN, so the *browser* needs internet for the styling and chart. All data and logic stay local. Vendoring these files for fully-offline use is in "next steps".
 
-The application uses **4 tables**:
+## 4. Tech stack and why
 
-```
-users
- └── id (PK), username, password_hash, shop_name, created_at
+| Layer | Choice | Why |
+|---|---|---|
+| Backend | Python 3 + Flask | Small, easy to read, quick to run locally |
+| Database | SQLite (`sqlite3`, plain SQL) | Zero setup; one file; a good fit for one shop with ~80 customers. No ORM, so every query is visible and scoped by `user_id` |
+| Frontend | Server-rendered Jinja templates, Bootstrap 5, a little JavaScript, Chart.js | No build step; works well on phones; fewer moving parts to break |
+| Security | Werkzeug password hashing, Flask-WTF CSRF, session login, parameterised SQL | Standard, well-tested tools |
 
-customers
- └── id (PK), user_id (FK → users), name, phone, address, created_at
+## 5. Run it locally (about 5 minutes)
 
-credit_transactions
- └── id (PK), transaction_id (unique), customer_id (FK → customers),
-     user_id (FK → users), amount, description, date, created_at
+You need Python 3.8+.
 
-payment_transactions
- └── id (PK), transaction_id (unique), customer_id (FK → customers),
-     user_id (FK → users), amount, note, date, created_at
-```
-
-**Relationships:**
-- One **user** owns many **customers** (1:N)
-- One **customer** has many **credit_transactions** (1:N)
-- One **customer** has many **payment_transactions** (1:N)
-- Outstanding balance = `SUM(credit_transactions.amount) − SUM(payment_transactions.amount)` computed at query time
-
----
-
-## Installation Instructions
-
-### Prerequisites
-- Python 3.8 or higher
-- `pip` (comes with Python)
-- Git
-
-### Steps
-
-**1. Clone the repository**
 ```bash
-git clone https://github.com/your-username/shop_credit_tracker.git
+# 1. Go into the project folder
 cd shop_credit_tracker
-```
 
-**2. Create and activate a virtual environment**
-
-*macOS / Linux:*
-```bash
+# 2. Create and activate a virtual environment
 python -m venv venv
-source venv/bin/activate
-```
+source venv/bin/activate          # Windows: venv\Scripts\activate
 
-*Windows:*
-```bash
-python -m venv venv
-venv\Scripts\activate
-```
-
-**3. Install dependencies**
-```bash
+# 3. Install dependencies
 pip install -r requirements.txt
-```
 
-**4. Seed the database with demo data**
-```bash
+# 4. Create the database with demo data
 python seed.py
-```
-This creates the SQLite database (`shopkhata.db`) and populates it with a demo shop owner account and sample customers.
 
-**5. Run the application**
-```bash
+# 5. Start the app
 python app.py
 ```
 
----
+Open **http://127.0.0.1:5001** (port 5001 is used because macOS AirPlay occupies 5000; change it with `PORT=8000 python app.py`).
 
-## How to Run
+**Demo login:** username `demo`, password `demo123` (shop: *Ravi Kirana Store*).
 
-- **Development server:** `python app.py` → open [http://localhost:5000](http://localhost:5000) in your browser
-- The app runs in Flask's built-in development server. For production deployment, use Gunicorn + Nginx.
+To see it on a real phone on the same Wi-Fi: `HOST=0.0.0.0 python app.py`, then open `http://<your-computer-ip>:5001`. The app listens only on localhost by default.
 
----
+Run the tests (they use a temporary database and do not touch your demo data):
 
-## Demo Credentials
+```bash
+python -m unittest discover -s tests
+```
 
-| Field | Value |
-|-------|-------|
-| Username | `demo` |
-| Password | `demo123` |
-| Shop Name | Ram General Store |
+Data is stored in `instance/shopkhata.db` and survives refresh, logout and restart. Delete that file and run `python seed.py` to reset.
 
-> Log in with the above credentials to explore the app with pre-loaded sample customers and transactions.
+## 6. Database
 
----
+```
+users                 id, username (unique), password_hash, shop_name, created_at
+customers             id, user_id → users, full_name, phone, address, created_at
+credit_transactions   id, txn_id (unique), customer_id → customers, user_id → users,
+                      description, amount (> 0), txn_date, notes, created_at
+payment_transactions  id, txn_id (unique), customer_id → customers, user_id → users,
+                      amount (> 0), txn_date, notes, created_at
+```
 
-## Assumptions & Product Decisions
+Outstanding balance = `SUM(credit_transactions.amount) − SUM(payment_transactions.amount)`, calculated at query time.
 
-- **Balance is calculated from transactions** (not stored as a column) to prevent data inconsistency between the stored value and the actual transaction sum.
-- **Customers cannot be deleted** if they have an outstanding balance — this protects data integrity and prevents accidental loss of debt records.
-- **Payments cannot exceed outstanding balance** — enforced server-side to prevent negative balances.
-- **Single-user per shop** — v1 targets individual shop owners; multi-staff role management is deferred to v2.
-- **WhatsApp integration via click-to-chat** (`wa.me/`) — no API key or subscription required; works with any WhatsApp-enabled phone number.
-- **Unique transaction IDs** are generated server-side (UUID-based) for every entry, enabling an audit trail without relying on auto-increment IDs alone.
+## 7. What I would build next with one more week
 
----
+1. **Correction entries** and a "void" flag with a reason, instead of editing history.
+2. **Shareable statement** per customer (a printable/WhatsApp-able page with the full ledger) as stronger proof in an argument.
+3. **Overdue view**: "customers who haven't paid in 30+ days", with one-tap reminders in a row.
+4. Store money as integer paise instead of floating-point numbers.
+5. Searchable customer picker on the entry screens (better than a drop-down when there are 80+ customers) and quick-amount buttons.
+6. Telugu / Hindi labels; install-to-home-screen (PWA); bundle Bootstrap/Chart.js locally for offline use.
+7. Rate limiting on login and a password-reset flow.
 
-## Features Excluded & Reasons
+## 8. Time spent
 
-| Feature | Reason Excluded |
-|---|---|
-| SMS / Email notifications | Requires paid third-party API keys; out of scope for a free, offline-first tool |
-| Multi-currency support | Target users are single-country small shop owners; adds unnecessary complexity |
-| Inventory management | Out of scope; would double the complexity and shift the product's focus |
-| Barcode scanning | Requires hardware integration not available in a pure web app |
-| Multi-staff / role-based access | Planned for v2; v1 focuses on the solo shop owner use case |
-
----
-
-## Future Improvements
-
-- 📥 **Bulk import customers** via CSV upload
-- 🔔 **Push notifications** for overdue payment reminders
-- 📦 **Inventory integration** to auto-create credit entries from stock
-- 🌐 **Multi-language support** (Hindi, Tamil, Telugu, and other regional languages)
-- 📱 **PWA / offline support** so the app works without an internet connection
-- 📧 **Monthly email statements** sent automatically to the shop owner
-
----
-
-## Approximate Development Hours
-
-| Phase | Hours |
-|---|---|
-| Project setup & architecture | 2 |
-| Database & models | 3 |
-| Authentication | 2 |
-| Customer management | 3 |
-| Credit & payment management | 4 |
-| Dashboard | 3 |
-| Reports | 2 |
-| WhatsApp reminders | 1 |
-| CSS / UI polish | 4 |
-| Testing & debugging | 3 |
-| Documentation | 2 |
-| **Total** | **29** |
-
----
-
-*Built with ❤️ for small shop owners everywhere.*
+**TODO – replace with your real number:** approx. __ hours.
