@@ -72,5 +72,23 @@
 
 ## Developer Verification Notes
 - Tested across desktop and mobile viewport resolutions with Bootstrap 5 responsive grid and off-canvas sidebar.
-- 13 automated unit, integration, and security tests in `tests/` pass with zero failures.
+- 18 automated unit, integration, security and regression tests in `tests/` pass (they run on a temporary database, not the demo data).
 - Zero external ORM dependencies; clean parameterized SQLite queries ensure fast, auditable execution.
+
+---
+
+## Final Review Pass (second AI session, Claude)
+
+I gave the finished project and the assignment PDF to Claude and asked it to check the project against the brief. It found problems that the first AI session and my earlier QA had missed. I reviewed each one and kept the fixes:
+
+| Problem found | How it was found | Fix |
+|---|---|---|
+| Tests ran against the real demo database and left extra users/customers in it | Counted users in `instance/shopkhata.db` after running the tests | Tests now use a temporary database (`DATABASE_PATH`) |
+| Posting an empty amount to the payment form raised `UnboundLocalError` (HTTP 500); `nan` and `inf` passed the `> 0` check | Reading the `add_payment` code path | Shared `_parse_amount()` helper; regression tests for blank/nan/inf/negative/huge values |
+| Default date used `toISOString()` (UTC), so between 12:00 AM and 5:30 AM IST the form showed *yesterday* | Reading `main.js` | Use the device's local date; server also defaults to today |
+| `?next=` redirect after login never worked (full URL was passed) and, once "fixed" naively, would allow `//evil.com` | Reading `login_required` and `login` | Pass only the path; reject `//` and `/\` prefixes; tests added |
+| Random `SECRET_KEY` on every start logged the user out on each restart / debug reload; `debug=True` on `0.0.0.0` exposed the debugger to the network | Reading `config.py` and `app.py` | Key persisted in `instance/secret_key`; binds to `127.0.0.1` and debug off by default |
+| Credit form forced a typed description and date, slowing the "few seconds at the counter" flow | Comparing the form with the brief | Description optional, date defaults to today |
+| README schema, port and "no internet" claims did not match the code | Comparing README with `__init__.py`, `app.py`, `base.html` | README rewritten |
+
+Note: model names in the table at the top were typed from memory; please verify them before submitting.

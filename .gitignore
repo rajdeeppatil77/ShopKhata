@@ -10,3 +10,4 @@ instance/*.db
 dist/
 build/
 .pytest_cache/
+instance/secret_key
