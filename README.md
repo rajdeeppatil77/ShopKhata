@@ -216,6 +216,31 @@ The automated test suite uses an isolated temporary database and will not touch 
 
 python -m unittest discover -s tests
 
+## 6. Installation & Setup Guide
+
+### Prerequisites
+- Python 3.8 or higher
+- Git
+
+### Step-by-Step Setup
+
+```bash
+# 1. Clone the repository and enter the project directory
+git clone [https://github.com/rajdeeppatil77/ShopKhata.git](https://github.com/rajdeeppatil77/ShopKhata.git)
+cd ShopKhata
+
+# 2. Create and activate a virtual environment
+python -m venv venv
+source venv/bin/activate          # On Windows: venv\Scripts\activate
+
+# 3. Install Python dependencies
+pip install -r requirements.txt
+
+# 4. Initialize the SQLite database with demo data
+python seed.py
+
+# 5. Start the Flask application
+python app.py
 
 7. Project structure and database
 
