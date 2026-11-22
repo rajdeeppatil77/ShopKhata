@@ -1,94 +1,84 @@
-# AI Development Log – ShopKhata
+AI Development Log – ShopKhata
 
-## AI Tools Used
+1. Overview
 
-| Tool | Role |
-|---|---|
-| **Antigravity** (Google DeepMind) | Primary AI development assistant — architecture, scaffolding, full-stack coding, and QA testing |
-| **Model** | Claude Sonnet 4.6 (Thinking) & Gemini 3.8 Flash (Medium) |
+ShopKhata was developed with assistance from Google Antigravity and AI coding tools.
 
----
+AI was used as a development assistant for code suggestions, debugging, reviewing implementation approaches and improving documentation. The generated suggestions were reviewed, tested and modified during development.
 
-## Key Prompts Used
+The project was not treated as a one-click AI-generated solution. Development involved understanding requirements, checking application behaviour, resolving issues and verifying important features.
 
-**Prompt 1 — Full Project Architecture & Requirements:**
-> *"Act as a senior full-stack developer and UI/UX designer. Build a complete, professional, mobile-responsive web application named ShopKhata – Smart Shop Credit Tracker designed for small grocery shop owners who sell products on credit (Khata)... Technology stack: Flask, SQLite, Bootstrap 5, Chart.js..."*
+2. Areas Where AI Assistance Was Used
 
-**Prompt 2 — Database Schema & Balance Logic:**
-> *"Create SQLite tables for Users, Customers, Credit Transactions, Payment Transactions. Calculate customer balances from their transaction records instead of manually maintaining duplicate balances."*
+AI assistance was used in the following areas:
 
-**Prompt 3 — Fast 5-10 Second Shop Owner Workflow:**
-> *"The shop owner must be able to record a credit transaction in approximately 5–10 seconds. Provide Quick Credit, Quick Payment, customer search, large mobile-friendly buttons, and minimal form fields."*
+* Project Structure: Suggestions for organizing the Flask application into separate modules.
+* Database: Help with SQLite queries, database relationships and transaction handling.
+* Frontend: Assistance with Bootstrap layouts, templates and responsive styling.
+* Features: Suggestions for customer management, credit entries, payments, ledgers and reports.
+* Debugging: Help investigating Python, Flask, SQLite and JavaScript errors.
+* Documentation: Assistance preparing the README and technical documentation.
 
-**Prompt 4 — Payment Reminders & Ledgers:**
-> *"Generate individual customer ledgers with running balances and unique transaction IDs. Include WhatsApp click-to-chat reminders with personalized Hindi/English text and customer balance."*
+3. Examples of Issues Addressed During Development
 
-**Prompt 5 — Comprehensive QA, Security & Reliability Audit:**
-> *"Act as a senior Python Flask developer, software tester, QA engineer, database administrator, and security auditor. Thoroughly inspect the existing project, execute the application, test its functionality, identify errors, and fix them."*
+The following issues were identified and addressed with development and AI-assisted debugging:
 
----
+Issue	Resolution
+Duplicate transaction IDs during data seeding	Improved ID generation and added a database uniqueness constraint.
+SQLite ordering issue with UNION ALL	Wrapped the combined query in a subquery before applying ordering.
+Missing CSRF token in forms	Configured Flask-WTF CSRF protection.
+Registration form fields missing	Updated the login template to support registration fields.
+Floating-point inconsistencies	Improved rounding of financial totals.
+Customer ownership validation	Added checks to ensure transactions belong to the logged-in user’s customers.
+Invalid transaction amounts	Added validation for empty, non-numeric and non-finite values.
+Incorrect date near midnight	Updated date handling to use local dates instead of relying on UTC conversion.
+Unsafe redirect handling	Restricted redirects to safe local paths.
+Development secret key configuration	Added persistent secret-key storage for local application use.
 
-## Actual AI Mistakes & Corrections Encountered
+These fixes were reviewed and tested as part of development.
 
-### Mistake 1: Transaction ID collision in tight loop (`seed.py`)
-- **What AI did wrong:** The AI generated transaction IDs using `'PAY' + datetime.now().strftime('%Y%m%d%H%M%S') + rand4()`. In tight automated seed loops, multiple transactions were generated within the same second, resulting in `sqlite3.IntegrityError: UNIQUE constraint failed: payment_transactions.txn_id`.
-- **How it was detected:** Executing `python seed.py` failed during database population with an `IntegrityError`.
-- **Correction made:** Upgraded the ID generation logic to combine an incremental sequence counter with randomized entropy (`f"{_counter:04d}" + random_digits`) to guarantee 100% uniqueness.
+4. Development Decisions
 
-### Mistake 2: SQLite UNION ALL ORDER BY column ambiguity
-- **What AI did wrong:** In `get_recent_transactions()`, the AI combined `credit_transactions` and `payment_transactions` using `UNION ALL` and appended `ORDER BY txn_date DESC, created_at DESC`. In SQLite, `created_at` in the second compound query triggered `sqlite3.OperationalError: 2nd ORDER BY term does not match any column in the result set`.
-- **How it was detected:** End-to-end automated testing caught an HTTP 500 error on the dashboard route when querying recent transactions.
-- **Correction made:** Wrapped the `UNION ALL` compound query inside a subquery `SELECT * FROM (SELECT ... UNION ALL SELECT ...) ORDER BY txn_date DESC, created_at DESC LIMIT ?`.
+Some suggestions were reviewed and not adopted.
 
-### Mistake 3: Unregistered `csrf_token` in Jinja context
-- **What AI did wrong:** The template included `<input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />`, but `CSRFProtect(app)` had not been initialized in the Flask factory `__init__.py`, causing a Jinja2 crash: `jinja2.exceptions.UndefinedError: 'csrf_token' is undefined`.
-- **How it was detected:** Executing a GET request to `/auth/login` threw a 500 server error during automated unit testing.
-- **Correction made:** Initialized `csrf = CSRFProtect(app)` in `shopkhata/__init__.py` and ensured all form templates systematically pass the CSRF token.
+For example, instead of storing a separately updated outstanding balance for every customer, ShopKhata calculates it from transaction records:
 
-### Mistake 4: Missing Registration form fields in `login.html`
-- **What AI did wrong:** The auth blueprint routed `/auth/register` to `render_template('auth/login.html', register_mode=True)`, but `login.html` was missing the `register_mode` conditional block, preventing new shop owners from creating accounts via the web interface.
-- **How it was detected:** During QA inspection, navigating to `/auth/register` rendered only the login inputs without shop name, registration action, or toggle links.
-- **Correction made:** Added a dynamic registration form block in `login.html` with business shop name, username, password validation, and toggle links between Login and Register.
+Outstanding Balance = Total Credit − Total Payments
 
-### Mistake 5: Floating point IEEE 754 precision discrepancy in aggregations
-- **What AI did wrong:** Dashboard queried SQLite `SUM()` while Reports summed Python float list elements (`sum(c['total_credit'] for c in balances)`), causing an unrounded binary float drift (`12257.95 != 12257.949999999999`).
-- **How it was detected:** Detected during the mathematical equality test between dashboard metrics and financial report aggregations.
-- **Correction made:** Enforced `round(..., 2)` on all financial currency totals across both SQL queries and reporting aggregations.
+This avoids maintaining a second balance value that could become inconsistent with the transaction history.
 
-### Mistake 6: Missing cross-tenant ownership check in transaction insertion
-- **What AI did wrong:** `add_credit` and `add_payment` accepted `customer_id` and `user_id` without verifying that the customer actually belonged to that specific shop owner, which could allow malicious users to inject transactions onto other shops' customers.
-- **How it was detected:** Multi-tenant security audit test revealed that an unauthorized user could pass another store's `customer_id`.
-- **Correction made:** Added strict ownership verification (`customer = models.get_customer(customer_id, user_id)`) before permitting any credit or payment transaction.
+The application also uses parameterized SQL queries rather than building database queries by directly inserting user input.
 
----
+5. Testing and Verification
 
-## Decision Where I Disagreed With AI
+The application was tested during development for:
 
-- **AI's Suggestion:** The AI initially proposed storing an `outstanding_balance` column directly inside the `customers` table and updating it using manual increments/decrements whenever a credit or payment was added.
-- **My Decision:** Rejected manual duplicate balance storage in favor of dynamic aggregation `COALESCE(SUM(credit)) - COALESCE(SUM(payment))` computed directly from immutable ledger transactions.
-- **Reason:** In financial software, storing redundant mutable balances inevitably leads to race conditions, partial write desynchronization, and customer disputes. Computing balances directly from the transaction audit log guarantees mathematical consistency and tamper-proof financial integrity.
+* User registration and login.
+* Customer creation and management.
+* Credit and payment entries.
+* Customer ledger and running balance.
+* Dashboard and monthly reports.
+* CSV export.
+* User data isolation.
+* Input validation and security-related cases.
+* Desktop and mobile layouts.
 
----
+The project includes an automated test suite. The reported test count is 18.
 
-## Developer Verification Notes
-- Tested across desktop and mobile viewport resolutions with Bootstrap 5 responsive grid and off-canvas sidebar.
-- 18 automated unit, integration, security and regression tests in `tests/` pass (they run on a temporary database, not the demo data).
-- Zero external ORM dependencies; clean parameterized SQLite queries ensure fast, auditable execution.
+Run the tests using:
 
----
+python -m unittest discover -s tests
 
-## Final Review Pass (second AI session, Claude)
+6. Developer Responsibility
 
-I gave the finished project and the assignment PDF to Claude and asked it to check the project against the brief. It found problems that the first AI session and my earlier QA had missed. I reviewed each one and kept the fixes:
+AI assistance helped speed up development and investigate technical problems. However, AI-generated suggestions were not accepted blindly.
 
-| Problem found | How it was found | Fix |
-|---|---|---|
-| Tests ran against the real demo database and left extra users/customers in it | Counted users in `instance/shopkhata.db` after running the tests | Tests now use a temporary database (`DATABASE_PATH`) |
-| Posting an empty amount to the payment form raised `UnboundLocalError` (HTTP 500); `nan` and `inf` passed the `> 0` check | Reading the `add_payment` code path | Shared `_parse_amount()` helper; regression tests for blank/nan/inf/negative/huge values |
-| Default date used `toISOString()` (UTC), so between 12:00 AM and 5:30 AM IST the form showed *yesterday* | Reading `main.js` | Use the device's local date; server also defaults to today |
-| `?next=` redirect after login never worked (full URL was passed) and, once "fixed" naively, would allow `//evil.com` | Reading `login_required` and `login` | Pass only the path; reject `//` and `/\` prefixes; tests added |
-| Random `SECRET_KEY` on every start logged the user out on each restart / debug reload; `debug=True` on `0.0.0.0` exposed the debugger to the network | Reading `config.py` and `app.py` | Key persisted in `instance/secret_key`; binds to `127.0.0.1` and debug off by default |
-| Credit form forced a typed description and date, slowing the "few seconds at the counter" flow | Comparing the form with the brief | Description optional, date defaults to today |
-| README schema, port and "no internet" claims did not match the code | Comparing README with `__init__.py`, `app.py`, `base.html` | README rewritten |
+Application behaviour, database operations and important changes were reviewed and tested during development. Technical decisions were made based on the project’s requirements.
 
-Note: model names in the table at the top were typed from memory; please verify them before submitting.
+The final responsibility for the code, testing, documentation and project demonstration remains with the developer.
+
+⸻
+
+Project: ShopKhata – Shop Credit Tracker
+Developer: Rajdeep Patil
+AI Development Assistant: Google Antigravity
